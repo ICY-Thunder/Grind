@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>GRIND</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #0a0a0a;
+    --surface: #111111;
+    --card: #181818;
+    --border: #2a2a2a;
+    --accent: #e8ff00;
+    --text: #f0f0f0;
+    --muted: #555;
+    --rest-accent: #00d4ff;
+  }
+
+  html, body {
+    height: 100%;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+    overflow: hidden;
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+
+  .app {
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .app::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 100;
+    opacity: 0.4;
+  }
+
+  .header {
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid var(--border);
+    background: var(--bg);
+    flex-shrink: 0;
+  }
+
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+
+  .logo {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 36px;
+    letter-spacing: 4px;
+    color: var(--accent);
+    line-height: 1;
+    text-shadow: 0 0 30px rgba(232, 255, 0, 0.3);
+  }
+
+  .date-pill {
+    font-size: 10px;
+    letter-spacing: 2px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .day-nav {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+  .day-nav::-webkit-scrollbar { display: none; }
+
+  .day-btn {
+    flex-shrink: 0;
+    padding: 5px 12px;
+    border: 1px solid var(--border);
+    background: transparent;
+    color: var(--muted);
+    font-family: 'DM Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 1px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-transform: uppercase;
+  }
+
+  .day-btn.active {
+    border-color: var(--accent);
+    color: var(--accent);
+    background: rgba(232, 255, 0, 0.06);
+  }
+
+  .day-btn.rest-day.active {
+    border-color: var(--rest-accent);
+    color: var(--rest-accent);
+    background: rgba(0, 212, 255, 0.06);
+  }
+
+  .day-btn.today-marker { position: relative; }
+  .day-btn.today-marker::after {
+    content: '';
+    position: absolute;
+    bottom: -5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 4px;
+    height: 4px;
+    background: var(--accent);
+    border-radius: 50%;
+  }
+
+  .content {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: none;
+    padding: 0 20px 20px;
+  }
+  .content::-webkit-scrollbar { display: none; }
+
+  .workout-header {
+    padding: 20px 0 16px;
+    border-bottom: 1px solid var(--border);
+    margin-bottom: 16px;
+    animation: slideIn 0.25s ease;
+  }
+
+  .workout-type {
+    font-size: 10px;
+    letter-spacing: 3px;
+    color: var(--muted);
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+
+  .workout-name {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 48px;
+    line-height: 0.9;
+    letter-spacing: 2px;
+    color: var(--text);
+  }
+
+  .workout-name span { color: var(--accent); }
+
+  .workout-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 10px;
+  }
+
+  .meta-item {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .meta-dot { width: 6px; height: 6px; background: var(--accent); flex-shrink: 0; }
+  .meta-dot.walk { background: var(--rest-accent); }
+
+  .exercise-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    animation: slideIn 0.25s ease;
+  }
+
+  .exercise-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    padding: 14px 16px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.15s;
+    cursor: pointer;
+  }
+
+  .exercise-card::before {
+    content: '';
+    position: absolute;
+    left: 0; top: 0; bottom: 0;
+    width: 3px;
+    background: var(--accent);
+    transform: scaleY(0);
+    transition: transform 0.2s ease;
+    transform-origin: bottom;
+  }
+
+  .exercise-card.done::before { transform: scaleY(1); }
+  .exercise-card.done { border-color: rgba(232, 255, 0, 0.2); }
+  .exercise-card.done .ex-name {
+    color: var(--muted);
+    text-decoration: line-through;
+    text-decoration-color: var(--accent);
+  }
+
+  .ex-num {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 28px;
+    color: var(--border);
+    line-height: 1;
+    flex-shrink: 0;
+    width: 28px;
+  }
+
+  .ex-info { flex: 1; }
+
+  .ex-name {
+    font-size: 13px;
+    font-weight: 500;
+    letter-spacing: 0.5px;
+    color: var(--text);
+    line-height: 1.3;
+    transition: color 0.2s;
+  }
+
+  .ex-sets {
+    font-size: 10px;
+    color: var(--muted);
+    letter-spacing: 1px;
+    margin-top: 3px;
+  }
+
+  .ex-check {
+    width: 22px;
+    height: 22px;
+    border: 1px solid var(--border);
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+  }
+
+  .exercise-card.done .ex-check { background: var(--accent); border-color: var(--accent); }
+
+  .check-icon { opacity: 0; font-size: 12px; color: #000; transition: opacity 0.2s; }
+  .exercise-card.done .check-icon { opacity: 1; }
+
+  .progress-wrap {
+    padding: 12px 20px 0;
+    flex-shrink: 0;
+  }
+
+  .progress-bar { height: 2px; background: var(--border); width: 100%; overflow: hidden; }
+
+  .progress-fill {
+    height: 100%;
+    background: var(--accent);
+    transition: width 0.4s ease;
+    box-shadow: 0 0 8px rgba(232,255,0,0.5);
+  }
+
+  .progress-label {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 6px;
+    font-size: 9px;
+    letter-spacing: 1.5px;
+    color: var(--muted);
+    text-transform: uppercase;
+  }
+
+  .rest-screen {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    animation: slideIn 0.3s ease;
+  }
+
+  .rest-icon { font-size: 64px; margin-bottom: 20px; }
+
+  .rest-title {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: 52px;
+    letter-spacing: 4px;
+    color: var(--rest-accent);
+    line-height: 1;
+    margin-bottom: 8px;
+    text-shadow: 0 0 30px rgba(0, 212, 255, 0.3);
+  }
+
+  .rest-sub {
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    line-height: 1.8;
+  }
+
+  .walk-badge {
+    margin-top: 24px;
+    padding: 10px 20px;
+    border: 1px solid var(--rest-accent);
+    color: var(--rest-accent);
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .completion {
+    margin: 12px 20px 0;
+    padding: 12px 16px;
+    background: rgba(232, 255, 0, 0.08);
+    border: 1px solid var(--accent);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    animation: popIn 0.3s ease;
+  }
+
+  .completion-text {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    color: var(--accent);
+    text-transform: uppercase;
+  }
+
+  .reset-btn {
+    margin-left: auto;
+    font-size: 9px;
+    letter-spacing: 1px;
+    color: var(--muted);
+    background: none;
+    border: 1px solid var(--border);
+    cursor: pointer;
+    font-family: 'DM Mono', monospace;
+    text-transform: uppercase;
+    padding: 4px 8px;
+  }
+
+  @keyframes slideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes popIn {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1); }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <div class="header">
+    <div class="header-top">
+      <div class="logo">GRIND</div>
+      <div class="date-pill" id="dateLabel"></div>
+    </div>
+    <div class="day-nav" id="dayNav"></div>
+  </div>
+
+  <div id="progressWrap" class="progress-wrap" style="display:none">
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-label">
+      <span>Progress</span>
+      <span id="progressText">0 / 0</span>
+    </div>
+  </div>
+
+  <div id="completionBanner" style="display:none" class="completion">
+    <span>💪</span>
+    <span class="completion-text">Session Complete</span>
+    <button class="reset-btn" onclick="resetDay()">Reset</button>
+  </div>
+
+  <div class="content" id="content"></div>
+</div>
+
+<script>
+// Sat-to-Fri week order
+const WEEK = ['Sat','Sun','Mon','Tue','Wed','Thu','Fri'];
+
+// Map JS getDay() (0=Sun..6=Sat) → our day keys
+const JS_TO_KEY = { 6:'Sat', 0:'Sun', 1:'Mon', 2:'Tue', 3:'Wed', 4:'Thu', 5:'Fri' };
+
+const PLAN = {
+  Sat: {
+    name: 'UPPER', type: 'Strength Focus', walk: true,
+    exercises: [
+      { name: 'Bench Press', sets: '4 × 5' },
+      { name: 'Barbell Row', sets: '4 × 5' },
+      { name: 'Overhead Press', sets: '3 × 6' },
+      { name: 'Pull-ups / Lat Pulldown', sets: '3 × 8' },
+      { name: 'Face Pulls', sets: '3 × 15' },
+    ]
+  },
+  Sun: {
+    name: 'LOWER', type: 'Strength Focus', walk: false,
+    exercises: [
+      { name: 'Squat', sets: '4 × 5' },
+      { name: 'Romanian Deadlift', sets: '3 × 8' },
+      { name: 'Leg Press', sets: '3 × 10' },
+      { name: 'Leg Curl', sets: '3 × 10' },
+      { name: 'Calf Raises (Standing)', sets: '4 × 15' },
+    ]
+  },
+  Mon: { name: 'REST', type: 'Recovery', walk: true, exercises: [] },
+  Tue: {
+    name: 'PUSH', type: 'Hypertrophy', walk: true,
+    exercises: [
+      { name: 'Incline Dumbbell Press', sets: '4 × 10' },
+      { name: 'Cable Lateral Raises', sets: '4 × 15' },
+      { name: 'Dumbbell Shoulder Press', sets: '3 × 12' },
+      { name: 'Cable Flyes', sets: '3 × 12' },
+      { name: 'Tricep Pushdown', sets: '3 × 12' },
+      { name: 'Overhead Tricep Extension', sets: '3 × 12' },
+    ]
+  },
+  Wed: {
+    name: 'PULL', type: 'Hypertrophy', walk: true,
+    exercises: [
+      { name: 'Deadlift', sets: '3 × 5' },
+      { name: 'Cable Row', sets: '4 × 12' },
+      { name: 'Single Arm DB Row', sets: '3 × 12' },
+      { name: 'Face Pulls', sets: '3 × 15' },
+      { name: 'Hammer Curls', sets: '3 × 12' },
+      { name: 'Incline Curl', sets: '3 × 12' },
+    ]
+  },
+  Thu: {
+    name: 'LEGS', type: 'Hypertrophy', walk: false,
+    exercises: [
+      { name: 'Hack Squat', sets: '4 × 8' },
+      { name: 'Bulgarian Split Squat', sets: '3 × 10 each' },
+      { name: 'Leg Extension', sets: '3 × 15' },
+      { name: 'Leg Curl', sets: '3 × 12' },
+      { name: 'Hip Thrusts', sets: '3 × 12' },
+      { name: 'Calf Raises (Seated)', sets: '4 × 15' },
+    ]
+  },
+  Fri: { name: 'REST', type: 'Recovery', walk: true, exercises: [] },
+};
+
+const todayKey = JS_TO_KEY[new Date().getDay()];
+let activeDay = todayKey;
+let checked = {};
+
+function loadChecked() {
+  try {
+    const stored = JSON.parse(localStorage.getItem('grind_checked') || '{}');
+    const storedDate = localStorage.getItem('grind_date');
+    const today = new Date().toDateString();
+    if (storedDate === today) { checked = stored; }
+    else { checked = {}; localStorage.setItem('grind_date', today); }
+  } catch(e) { checked = {}; }
+}
+
+function saveChecked() {
+  localStorage.setItem('grind_checked', JSON.stringify(checked));
+  localStorage.setItem('grind_date', new Date().toDateString());
+}
+
+function resetDay() {
+  checked[activeDay] = {};
+  saveChecked();
+  render();
+}
+
+function toggleExercise(dayKey, idx) {
+  if (!checked[dayKey]) checked[dayKey] = {};
+  checked[dayKey][idx] = !checked[dayKey][idx];
+  saveChecked();
+  render();
+}
+
+function buildNav() {
+  const nav = document.getElementById('dayNav');
+  nav.innerHTML = '';
+  WEEK.forEach(day => {
+    const btn = document.createElement('button');
+    btn.className = 'day-btn';
+    if (PLAN[day].name === 'REST') btn.classList.add('rest-day');
+    if (day === activeDay) btn.classList.add('active');
+    if (day === todayKey) btn.classList.add('today-marker');
+    btn.textContent = day;
+    btn.onclick = () => { activeDay = day; render(); };
+    nav.appendChild(btn);
+  });
+}
+
+function render() {
+  buildNav();
+  const plan = PLAN[activeDay];
+  const isRest = plan.name === 'REST';
+  const content = document.getElementById('content');
+  const progressWrap = document.getElementById('progressWrap');
+  const completionBanner = document.getElementById('completionBanner');
+
+  document.getElementById('dateLabel').textContent =
+    new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toUpperCase();
+
+  if (isRest) {
+    progressWrap.style.display = 'none';
+    completionBanner.style.display = 'none';
+    content.innerHTML = `
+      <div class="rest-screen">
+        <div class="rest-icon">🔋</div>
+        <div class="rest-title">REST DAY</div>
+        <div class="rest-sub">Recover. Sleep. Eat your protein.<br>Your muscles grow on days like this.</div>
+        ${plan.walk ? '<div class="walk-badge">🚶 8,500 Steps — Active Recovery Walk</div>' : ''}
+      </div>
+    `;
+    return;
+  }
+
+  const dayChecked = checked[activeDay] || {};
+  const total = plan.exercises.length;
+  const done = Object.values(dayChecked).filter(Boolean).length;
+  const allDone = done === total && total > 0;
+
+  progressWrap.style.display = 'block';
+  document.getElementById('progressFill').style.width = `${(done/total)*100}%`;
+  document.getElementById('progressText').textContent = `${done} / ${total}`;
+  completionBanner.style.display = allDone ? 'flex' : 'none';
+
+  let html = `
+    <div class="workout-header">
+      <div class="workout-type">${plan.type}</div>
+      <div class="workout-name">${plan.name} <span>DAY</span></div>
+      <div class="workout-meta">
+        <div class="meta-item"><div class="meta-dot"></div>${total} exercises</div>
+        ${plan.walk
+          ? '<div class="meta-item"><div class="meta-dot walk"></div>Walk day — 8,500 steps</div>'
+          : '<div class="meta-item"><div class="meta-dot" style="background:var(--muted)"></div>Skip walk today</div>'}
+      </div>
+    </div>
+    <div class="exercise-list">
+  `;
+
+  plan.exercises.forEach((ex, i) => {
+    const isDone = !!dayChecked[i];
+    html += `
+      <div class="exercise-card ${isDone ? 'done' : ''}" onclick="toggleExercise('${activeDay}', ${i})">
+        <div class="ex-num">${String(i+1).padStart(2,'0')}</div>
+        <div class="ex-info">
+          <div class="ex-name">${ex.name}</div>
+          <div class="ex-sets">${ex.sets}</div>
+        </div>
+        <div class="ex-check"><span class="check-icon">✓</span></div>
+      </div>
+    `;
+  });
+
+  html += '</div>';
+  content.innerHTML = html;
+}
+
+loadChecked();
+render();
+</script>
+</body>
+</html>
