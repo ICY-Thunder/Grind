@@ -7,6 +7,7 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <title>GRIND</title>
+<link id="favicon" rel="icon" type="image/svg+xml">
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -63,6 +64,13 @@
     margin-bottom: 10px;
   }
 
+  /* LOGO with dumbbell */
+  .logo-wrap {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+
   .logo {
     font-family: 'Bebas Neue', sans-serif;
     font-size: 36px;
@@ -70,6 +78,30 @@
     color: var(--accent);
     line-height: 1;
     text-shadow: 0 0 30px rgba(232, 255, 0, 0.3);
+  }
+
+  /* DUMBBELL SVG */
+  .dumbbell-svg {
+    overflow: visible;
+    flex-shrink: 0;
+  }
+
+  .db-outline {
+    fill: none;
+    stroke: #444;
+    stroke-width: 1.5;
+  }
+
+  .db-fill {
+    fill: #e8ff00;
+    transition: clip-path 0.5s ease;
+  }
+
+  .db-fill-overlay {
+    fill: none;
+    stroke: #e8ff00;
+    stroke-width: 1.5;
+    opacity: 0.9;
   }
 
   .date-pill {
@@ -256,7 +288,6 @@
   }
 
   .exercise-card.done .ex-check { background: var(--accent); border-color: var(--accent); }
-
   .check-icon { opacity: 0; font-size: 12px; color: #000; transition: opacity 0.2s; }
   .exercise-card.done .check-icon { opacity: 1; }
 
@@ -373,7 +404,32 @@
 
   <div class="header">
     <div class="header-top">
-      <div class="logo">GRIND</div>
+      <div class="logo-wrap">
+        <!-- Dumbbell SVG: 60w x 28h, fills bottom-to-top -->
+        <svg class="dumbbell-svg" width="60" height="28" viewBox="0 0 60 28">
+          <defs>
+            <clipPath id="dbFillClip">
+              <!-- controlled by JS: starts at bottom, grows upward -->
+              <rect id="dbClipRect" x="0" y="28" width="60" height="0"/>
+            </clipPath>
+          </defs>
+          <!-- filled version (clipped) -->
+          <g clip-path="url(#dbFillClip)">
+            <rect x="0"  y="2"  width="11" height="24" rx="1.5" fill="#e8ff00"/>
+            <rect x="11" y="6"  width="6"  height="16" rx="1"   fill="#e8ff00"/>
+            <rect x="17" y="11" width="26" height="6"  rx="0"   fill="#c8dd00"/>
+            <rect x="43" y="6"  width="6"  height="16" rx="1"   fill="#e8ff00"/>
+            <rect x="49" y="2"  width="11" height="24" rx="1.5" fill="#e8ff00"/>
+          </g>
+          <!-- outline always visible -->
+          <rect x="0"  y="2"  width="11" height="24" rx="1.5" fill="none" stroke="#444" stroke-width="1.5"/>
+          <rect x="11" y="6"  width="6"  height="16" rx="1"   fill="none" stroke="#444" stroke-width="1.5"/>
+          <rect x="17" y="11" width="26" height="6"  rx="0"   fill="none" stroke="#444" stroke-width="1.5"/>
+          <rect x="43" y="6"  width="6"  height="16" rx="1"   fill="none" stroke="#444" stroke-width="1.5"/>
+          <rect x="49" y="2"  width="11" height="24" rx="1.5" fill="none" stroke="#444" stroke-width="1.5"/>
+        </svg>
+        <div class="logo">GRIND</div>
+      </div>
       <div class="date-pill" id="dateLabel"></div>
     </div>
     <div class="day-nav" id="dayNav"></div>
@@ -399,10 +455,7 @@
 </div>
 
 <script>
-// Sat-to-Fri week order
 const WEEK = ['Sat','Sun','Mon','Tue','Wed','Thu','Fri'];
-
-// Map JS getDay() (0=Sun..6=Sat) → our day keys
 const JS_TO_KEY = { 6:'Sat', 0:'Sun', 1:'Mon', 2:'Tue', 3:'Wed', 4:'Thu', 5:'Fri' };
 
 const PLAN = {
@@ -495,6 +548,44 @@ function toggleExercise(dayKey, idx) {
   render();
 }
 
+// Update dumbbell fill based on progress (0.0 to 1.0)
+function updateDumbbell(pct) {
+  const h = 28; // total SVG height
+  const fillH = pct * h;
+  const fillY = h - fillH;
+  const rect = document.getElementById('dbClipRect');
+  if (rect) {
+    rect.setAttribute('y', fillY);
+    rect.setAttribute('height', fillH);
+  }
+  updateFavicon(pct);
+}
+
+// Generate favicon SVG as base64 data URI
+function updateFavicon(pct) {
+  const h = 32;
+  const fillH = Math.round(pct * h);
+  const fillY = h - fillH;
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+    <rect width="32" height="32" fill="#0a0a0a"/>
+    <defs><clipPath id="c"><rect x="0" y="${fillY}" width="32" height="${fillH}"/></clipPath></defs>
+    <g clip-path="url(#c)">
+      <rect x="1" y="5" width="6" height="22" rx="1" fill="#e8ff00"/>
+      <rect x="7" y="9" width="4" height="14" rx="1" fill="#e8ff00"/>
+      <rect x="11" y="13" width="10" height="6" fill="#c8dd00"/>
+      <rect x="21" y="9" width="4" height="14" rx="1" fill="#e8ff00"/>
+      <rect x="25" y="5" width="6" height="22" rx="1" fill="#e8ff00"/>
+    </g>
+    <rect x="1" y="5" width="6" height="22" rx="1" fill="none" stroke="${pct > 0 ? '#e8ff00' : '#555'}" stroke-width="1.2"/>
+    <rect x="7" y="9" width="4" height="14" rx="1" fill="none" stroke="${pct > 0 ? '#e8ff00' : '#555'}" stroke-width="1.2"/>
+    <rect x="11" y="13" width="10" height="6" fill="none" stroke="${pct > 0 ? '#e8ff00' : '#555'}" stroke-width="1.2"/>
+    <rect x="21" y="9" width="4" height="14" rx="1" fill="none" stroke="${pct > 0 ? '#e8ff00' : '#555'}" stroke-width="1.2"/>
+    <rect x="25" y="5" width="6" height="22" rx="1" fill="none" stroke="${pct > 0 ? '#e8ff00' : '#555'}" stroke-width="1.2"/>
+  </svg>`;
+  const encoded = 'data:image/svg+xml;base64,' + btoa(svg);
+  document.getElementById('favicon').href = encoded;
+}
+
 function buildNav() {
   const nav = document.getElementById('dayNav');
   nav.innerHTML = '';
@@ -524,6 +615,7 @@ function render() {
   if (isRest) {
     progressWrap.style.display = 'none';
     completionBanner.style.display = 'none';
+    updateDumbbell(0);
     content.innerHTML = `
       <div class="rest-screen">
         <div class="rest-icon">🔋</div>
@@ -539,9 +631,23 @@ function render() {
   const total = plan.exercises.length;
   const done = Object.values(dayChecked).filter(Boolean).length;
   const allDone = done === total && total > 0;
+  const pct = total > 0 ? done / total : 0;
+
+  // Update dumbbell — only for today's day
+  if (activeDay === todayKey) {
+    updateDumbbell(pct);
+  } else {
+    // Show that day's progress but don't update favicon
+    const clipRect = document.getElementById('dbClipRect');
+    if (clipRect) {
+      const fillH = pct * 28;
+      clipRect.setAttribute('y', 28 - fillH);
+      clipRect.setAttribute('height', fillH);
+    }
+  }
 
   progressWrap.style.display = 'block';
-  document.getElementById('progressFill').style.width = `${(done/total)*100}%`;
+  document.getElementById('progressFill').style.width = `${pct * 100}%`;
   document.getElementById('progressText').textContent = `${done} / ${total}`;
   completionBanner.style.display = allDone ? 'flex' : 'none';
 
